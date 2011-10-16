@@ -1,0 +1,30 @@
+#-----------------------------------------------------
+# Used to build the blue compiler
+# Core options that are common to both C# and Blue
+# ex:
+# csc /out:Blue.exe @blue_source_core
+# blue /out:Dogfood.exe @blue_source_core
+#-----------------------------------------------------
+
+# Infrastructure 
+main.cs PublicInterfaces.cs Error.cs Options.cs 
+
+# AST 
+TypeAST.cs ObjExpAST.cs ExpAST.cs StatementAST.cs AST.cs 
+
+# Stage 1) Lexer and Parser
+lexer.cs parser.cs 
+
+# Stage 2) Symbol Resolution
+Symbol.cs SymbolErrors.cs TypeSymbol.cs SemanticChecker.cs Scope.cs 
+
+# Stage 3) Codegeneration.
+EmitCodeGen.cs 
+
+/debug
+/d:DEBUG
+
+/m:Blue.Driver
+
+/r:System.dll
+/r:System.Xml.dll

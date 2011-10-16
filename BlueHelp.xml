@@ -1,0 +1,617 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>BlueLib</name>
+    </assembly>
+    <members>
+        <member name="T:Identifier">
+            <summary>
+            <c>Identifier</c> is a helper class to associate a string with a <c>FileRange</c>.
+            All AST references to a string-data should refer to an Identifier.
+            </summary>
+        </member>
+        <member name="T:AST.Node">
+            <summary>
+            <c>Node</c> is the base class for all nodes in the Abstract Syntax tree.
+            </summary>
+            <remarks>
+            <list type="bullet">
+            <item>It is associated with a <c>FileRange</c> object to guarantee that all nodes 
+            can provide line number information. </item>
+            <item>It also provides some standard utility functions to serialize a subtree to
+            XML or strings.</item>
+            </list>
+            Nodes are split into the following major categories: 
+            Declarations, Members, Statements, Expressions
+            </remarks>
+        </member>
+        <member name="T:AST.ProgramDecl">
+            <summary>
+            The root AST node for an entire multi-file program.
+            </summary>
+            <remarks>
+            A ProgramDecl node contains all global namespace decls.
+            </remarks>
+        </member>
+        <member name="T:SymbolEngine.ILookupController">
+             <summary>
+             IScopeLookup is used by a <see cref="T:SymbolEngine.Scope"/> to do a smart lookup.
+             <seealso cref="T:SymbolEngine.Scope"/>
+             </summary>
+             <remarks>
+             While all scopes have the same notion of 'lexical' parent, each type of 
+             scope has its own notion of 'super' or 'inherited' parent. For example:
+             <list type="bullet">
+             <item>BlockStatement, Method - 0 parents </item>
+             <item>Class - 1 parent, for the base class</item>
+             <item>Interfaces - multiple parents, 1 parent for each base interface</item>
+             <item>Namespace - A pseudo-parent from each using clauses.</item>
+             </list>
+             
+             Either Nodes or Symbols may implement IScopeLookup, depending on which
+             can best provide the super class.
+             Only a Scope should have a reference to these. 
+            </remarks>
+        </member>
+        <member name="T:AST.Exp">
+            <summary>
+            Abstract base class for all expressions.
+            </summary>
+            <remarks>
+            <para>Provides virtual functions for Resolving as a left or right hand side expressions.
+            All expressions have an associated System.Type (the <see cref="P:AST.Exp.CLRType"/> property).</para>
+            <para>When an expression is resolved, it can mutate itself into a new expression.The 
+            <see cref="M:AST.Exp.ResolveExpAsLeft(AST.Exp@,SymbolEngine.ISemanticResolver)"/> and <see cref="M:AST.Exp.ResolveExpAsRight(AST.Exp@,SymbolEngine.ISemanticResolver)"/> instance members
+            return a exp. If the expression was not mutated, they return the 'this' pointer. If a mutation
+            does occur, they could return a totally new, resolved, exp node. This is useful for code
+            transforms. (ex: constant-folding).</para>
+            </remarks>
+        </member>
+        <member name="T:AST.ArgExp">
+            <summary>
+            Node for an argument in a method call
+            </summary>
+            <remarks>
+            An ArgExp represents each argument in a <see cref="T:AST.MethodCallExp"/>.
+            <para><children>Children:<list type="bullet">
+            <item><see cref="T:AST.EArgFlow"/> - specify if this is an 'in', 'out', or 'ref' parameter.</item>
+            <item><see cref="T:AST.Exp"/> - specify the expression for this parameter</item>
+            </list></children></para>
+            </remarks>
+        </member>
+        <member name="T:AST.StatementExp">
+            <summary>
+            Abstract base class for expression that have sideeffects and can be used as statements.
+            </summary>
+            <remarks>
+            <para>Some expressions, like assignment, methodcalls, and the ++,-- operators
+            have sideeffects and so they can be used as a statement.</para>
+            <para>A StatementExp can be used directly as an expression, or it can be held in a 
+            <see cref="T:AST.ExpStatement"/> to be used as a statement.</para>
+            </remarks>
+        </member>
+        <member name="T:AST.LiteralExp">
+            <summary>
+            Abstract base class for all literals (ints, strings, chars, null, etc)
+            </summary>
+        </member>
+        <member name="T:AST.NullExp">
+            <summary>
+            Node representing the 'null' keyword literal.
+            </summary>
+        </member>
+        <member name="T:AST.IntExp">
+            <summary>
+            Node representing an System.Int32
+            </summary>
+        </member>
+        <member name="T:AST.Statement">
+            <summary>
+            Abstract base class for all statements.
+            </summary>
+        </member>
+        <member name="T:AST.ExpStatement">
+            <summary>
+            Statement to hold an <see cref="T:AST.StatementExp"/>.
+            </summary>
+            <remarks>
+            <para><children>Children<list type="bullet"><item>
+            <see cref="T:AST.StatementExp"/> - the expression to be evaluated as a statement
+            </item></list></children></para>
+            </remarks>
+        </member>
+        <member name="T:AST.TypeSig">
+            <summary>
+            Abstract base class for ast nodes representing types.
+            </summary>
+            <remarks>
+            <para>The following nodes derive from TypeSig:<list type="bullet">
+            <item><see cref="T:AST.ResolvedTypeSig"/>- a node not associated with source that directly wraps a symbol. </item>
+            <item><see cref="T:AST.SimpleTypeSig"/> - a node representing a non-decorated type from source.</item>
+            <item><see cref="T:AST.ArrayTypeSig"/> - a node representing an array type</item>
+            <item><see cref="T:AST.RefTypeSig"/> - a node representing a reference to a type.</item>
+            </list></para>
+            <para>A TypeSig represents the usage of a type in the AST. A <see cref="T:AST.ClassDecl"/> represents
+            the definition of a type in the AST. A <see cref="T:SymbolEngine.TypeEntry"/> is the symbol
+            representing the type.</para>
+            </remarks>
+        </member>
+        <member name="T:Blue.Public.ICLRtypeProvider">
+            <summary>
+            The ICLRTypeProvider interface provides metadata objects to the symbol engine.
+            </summary>
+            <remarks>
+            The ICLRTypeProvider interface is obtained from the emitter (in <see cref="T:Blue.Public.ICodeGenDriver"/>)
+            and used by the <see cref="T:Blue.Public.ISemanticChecker"/>
+            </remarks>
+        </member>
+        <member name="T:Blue.Public.ICodeGenDriver">
+            <summary>
+            This is the interface the driver uses to control CodeGeneration
+            </summary>
+        </member>
+        <member name="M:Blue.Public.ICodeGenDriver.BeginOutput(System.String[])">
+            <summary>
+            Begin codegen. Creates the assembly. 
+            </summary>        
+            <param name="stFilenames">All files that are being compiled. This is used to determine
+            a default name as well as associate files when building the .pdb. </param>        
+        </member>
+        <member name="M:Blue.Public.ICodeGenDriver.GetProvider(System.Reflection.Assembly[])">
+            <summary>
+            Given an array of the assemblies that we reference (not including mscorlib)
+            return a CLRTypeProvider for symbol resolution to use.
+            </summary>        
+        </member>
+        <member name="M:Blue.Public.ICodeGenDriver.DoCodeGen(AST.ProgramDecl)">
+            <summary>
+            Given the root of the program, walk the AST and emit the IL. 
+            </summary>
+            <param name="root">The root of an AST for the entire program</param>        
+        </member>
+        <member name="M:Blue.Public.ICodeGenDriver.EndOutput">
+            <summary>
+            The driver calls this when it is done with Codegen. 
+            Save the assembly
+            </summary>
+        </member>
+        <member name="T:ErrorException">
+            <summary>
+            <c>ErrorException</c> is the base class for all errors resulting from bad user-input
+            (as opposed to errors resulting from bugs in blue). 
+            </summary>
+            <remarks>
+            Each subsystem derives its own type safe exception with its own set of error codes.
+            Use the <see cref="T:Blue.Public.IError"/> interface to print the errors.
+            <list type="bullet">
+            <item>
+            <see cref="T:ManualParser.LexerException"/> - Lexical errors. Usually resulting from 
+            missing End-of-file, unterminated constants, bad preprocessor structure.
+            </item>
+            <item>
+            <see cref="T:ManualParser.Parser.ParserErrorException"/> - Syntax errors. 
+            </item>
+            <item>
+            <see cref="T:SymbolError.SymbolErrorException"/> - Symantic errors. These are related to syntax
+            errors in, but in general, any error that can reasonably be determined by the parser is
+            a syntax error. 
+            </item>
+            </list>
+            </remarks>
+        </member>
+        <member name="T:Help">
+            <summary>
+            Blue is a C# compiler written in C#.
+            </summary>
+            <remarks>
+            <para>Blue is an entirely managed C# implementation written 
+            in C# using the .NET runtime and Frameworks.</para>
+            <para>Contact jmstall@microsoft.com for issues.</para>
+            <para>See help on <see cref="T:Blue.Driver"/> for more details on the implementation</para>
+            </remarks>
+        </member>
+        <member name="T:Blue.Driver">
+            <summary>
+            The <c>Driver</c> class houses the Main() function and 
+            controls all other components.
+            </summary>
+            <remarks>
+            The Driver class is the primary client for the interfaces in <see cref="N:Blue.Public"/>.
+            It creates the components in the compilation pipeline.
+            <list type="bullet">
+            <item><see cref="T:Blue.Public.ILexer"/> - convert source to a token stream </item>
+            <item><see cref="T:Blue.Public.IParser"/> - convert token stream into AST </item>
+            <item><see cref="T:Blue.Public.ISemanticChecker"/> - do symbol resolution on the AST </item>
+            <item><see cref="T:Blue.Public.ICodeGenDriver"/> - emit IL for a resolved-AST </item>    
+            </list>
+            It also creates the utility components:
+            <list type="bullet">
+            <item><see cref="T:Blue.Public.IOptions"/> - register delegates to handle command line options</item>
+            <item><see cref="T:Blue.Public.IError"/> - unified error-reporting system for user-errors</item>
+            <item><see cref="T:Blue.Log"/> - logging facility, mostly for debugging </item>
+            </list>
+            </remarks>
+        </member>
+        <member name="T:Blue.Log">
+            <summary>
+            The <c>Log</c> class allows all other subsystems to emit log messages.
+            This is mostly a debugging feature.
+            </summary>
+            <remarks>
+            Activated by command line arguments (independent of the IOption system).
+            See <see cref="M:Blue.Log.InitLogging(System.String[])"/> for details.
+            </remarks>
+        </member>
+        <member name="M:Blue.Log.InitLogging(System.String[])">
+            <summary> Initialize the logging system. </summary>
+            <param name="stArgs">The command line arguments.</param>
+            <remarks>
+            Do a prelim sweep of command line args to set streams.
+            We can't use the ErrorHandling subsystem or the Options Subsystem because
+            logging is a more fundamental subsystem that the others depend on.
+            <para>Activate via:
+            '-l:XXXXX' where XXXXX is {Codegen, Verbose, Parser, Resolve }
+            Can specify multiple switches</para>
+            </remarks>
+        </member>
+        <member name="T:Blue.Log.LF">
+            <summary> Control what gets logged. </summary>
+            <remarks>
+            Each member get log to is own <see cref="T:System.IO.TextWriter"/>.
+            The buffer may go to the console, a file, or nothing.
+            </remarks>
+        </member>
+        <member name="F:Blue.Log.LF.Verbose">
+            <summary>Verbose information of use to an end-user.</summary>
+        </member>
+        <member name="F:Blue.Log.LF.Parser">
+            <summary> Information from the parser </summary>
+        </member>
+        <member name="F:Blue.Log.LF.Resolve">
+            <summary> Information during resolution </summary>
+        </member>
+        <member name="F:Blue.Log.LF.CodeGen">
+            <summary> Information during codegen </summary>
+        </member>
+        <member name="F:Blue.Log.LF.All">
+            <summary> All information </summary>
+        </member>
+        <member name="T:Blue.Public.ILexer">
+            <summary>
+            Interface provided by a lexer. This interface provides 1 token 
+            of lookahead (via peek).
+            </summary>
+            <remarks>
+            Used by an <see cref="T:Blue.Public.IParser"/> to convert the entire  
+            text-based input into a token stream. 
+            <para> The lexer handles EOF by returning the EOF token.
+            The lexer handles normal errors by returning the Error token, and
+            all subsequent calls will return EOF. </para>
+            <para> All preprocessor directives are handled behind the ILexer interface.</para>
+            <para> The primary implementation is <see cref="T:ManualParser.Lexer"/></para>
+            </remarks>
+        </member>
+        <member name="M:Blue.Public.ILexer.GetNextToken">
+            <summary>
+            Consume the next token in the stream and return it
+            </summary>        
+        </member>
+        <member name="M:Blue.Public.ILexer.PeekNextToken">
+            <summary>
+            Peek at the next token in the stream, but don't consume it (non-invasive)    
+            </summary>                
+        </member>
+        <member name="T:Blue.Public.IParser">
+            <summary>
+            The parser is responsible for providing the compiler with an AST to compile.    
+            </summary>
+            <remarks>
+            The parser has no specific knowledge of the filesystem or locating source files.
+            The primary implemenation of the IParser interface is <see cref="T:ManualParser.Parser"/>
+            which uses an <see cref="T:Blue.Public.ILexer"/> to parse a token stream into an AST. 
+            However, not all parser implementations would require a lexer. For example,
+            a parser could be implemented to read in from XML.
+            </remarks>
+        </member>
+        <member name="M:Blue.Public.IParser.ParseSourceFile">
+            <summary>
+            Parse a single source file and return a namespace.
+            </summary>
+            <remarks>
+            The driver must package all NamespaceDecl nodes into a single <see cref="T:AST.ProgramDecl"/>
+            which can then be resolved (using <see cref="T:Blue.Public.ISemanticChecker"/>) and
+            codegened (using <see cref="T:Blue.Public.ICodeGenDriver"/>)
+            </remarks>
+        </member>
+        <member name="T:Blue.Public.ISemanticChecker">
+            <summary>
+            This is the interface the Driver uses to kick off semantic checks.
+            </summary>
+        </member>
+        <member name="T:Blue.Public.OptionHandler">
+            <summary>
+            An OptionHandler delegate gets invoked by the option subsystem when it
+            parses the command line parameters.
+            </summary>
+            <remarks>
+            Handlers are registered by calling <see cref="M:Blue.Public.IOptions.AddHandler(System.String,System.String,Blue.Public.OptionHandler,System.String,System.String)"/>.
+            The <paramref name="stOptionParams"/> is the parameter from the command line.
+            </remarks>
+        </member>
+        <member name="T:Blue.Public.IOptions">
+            <summary>
+            Subsystems use the IOption interface to add delegates to handle the 
+            different command line switches.
+            </summary>
+        </member>
+        <member name="M:Blue.Public.IOptions.AddHandler(System.String,System.String,Blue.Public.OptionHandler,System.String,System.String)">
+            <summary>
+            Add a handler for a command line option.
+            </summary>
+            <param name="stOption">The long name of the option.</param>
+            <param name="stShortcut">A shortcut name for the option.</param>
+            <param name="ha">A <see cref="T:Blue.Public.OptionHandler"/> delegate to be invoked to handle this option</param>
+            <param name="stDescription">A short 1-line, description of this option.</param>
+            <param name="stFullHelp">A full description of the option including examples and details.</param>
+        </member>
+        <member name="T:Blue.Public.IError">
+            <summary>
+            The IError interface provides all subsytems with a unified ability to
+            report errors resulting from bad user-input (not internal compiler bugs).
+            </summary>
+            <remarks>
+            The IError interface is exposed to all components because anyone can
+            produce an error. 
+            <para> IError is built around the <see cref="T:ErrorException"/>
+            The rationale is that it is an implementation detail whether an error should
+            be thrown or just printed. By making everything an exception, clients of IError
+            can easily switch between Print and Throw as their implementaiton changes. </para>
+            </remarks>
+        </member>
+        <member name="M:Blue.Public.IError.PrintError(ErrorException)">
+            <summary>
+            Print an error.
+            </summary>
+            <remarks>
+            *Every* single user-error comes through here.
+            This does not include internal errors and exceptions (such as File-not-found).
+            However, if those exceptions impact the user, then they are converted to a
+            ErrorException and then they come through here.
+            </remarks>
+            <param name="e">The error.</param>
+        </member>
+        <member name="M:Blue.Public.IError.PrintWarning(ErrorException)">
+            <summary> 
+            Print a warning.   
+            </summary>
+            <remarks>
+            The cousin to PrintError.
+            *Every* single user-warning comes through here.        
+            Note that there is no ThrowWarning because a warning, by nature,
+            should only be informative and not require a change in flow-control.
+            </remarks>
+            <param name="e">The error.</param>
+        </member>
+        <member name="M:Blue.Public.IError.ThrowError(ErrorException)">
+            <summary>
+            call <see cref="M:Blue.Public.IError.PrintError(ErrorException)"/> and then throw the exception.
+            </summary>
+            <remarks>
+            ThrowError is a convenience function. Many times a user error is an 
+            exceptional case that requires major control flow. We use exception
+            handling for that. This lets us avoid having to check for error cases 
+            all over the place.    
+            </remarks>    
+            <param name="e">The error.</param>
+        </member>
+        <member name="M:Blue.Public.IError.HasErrors">
+            <summary>
+            This can be used by the Driver to change control flow in response to errors.
+            </summary>
+            <remarks>
+            Note that this is a check of errors since startup, not errors since last called.
+            So once it returns true, it will always return true.
+            </remarks>
+            <returns>Return true if we've had any errors since startup, false if we've had no errors.</returns>
+        </member>
+        <member name="T:ManualParser.Token">
+            <summary>
+            A single lexeme from a source file. These are produced by a <see cref="T:Blue.Public.ILexer"/>
+            and consumed by a parser.
+            </summary>
+        </member>
+        <member name="T:ManualParser.Lexer">
+            <summary>
+            A lexer to convert a <see cref="T:System.IO.TextReader"/> into a stream of <see cref="T:ManualParser.Token"/> objects.
+            </summary>
+            <remarks>
+            <see cref="T:Blue.Public.ILexer"/> implementation used by the <see cref="T:ManualParser.Parser"/> to parse a source file.
+            Also handles the preprocessor.
+            </remarks>
+        </member>
+        <member name="T:ManualParser.Parser">
+            <summary>
+            The primary parser implementation. Convert a token stream for a source file 
+            obtained by an <see cref="T:Blue.Public.ILexer"/> into a parse tree.
+            Parse errors are handled by throwing <see cref="T:ManualParser.Parser.ParserErrorException"/>
+            </summary>
+        </member>
+        <member name="T:ManualParser.Parser.ParserErrorException">
+            <summary>
+            ParserErrorException represents parse errors due to bad user-input.
+            </summary>
+        </member>
+        <member name="T:ManualParser.Parser.Code">
+            <summary>
+            Syntax error codes specific to Parser 
+            </summary>    
+        </member>
+        <member name="T:SymbolEngine.Scope">
+            <summary>
+            A scope is a low-level object to associate <see cref="T:Identifier"/> objects 
+            with <see cref="T:SymbolEngine.SymEntry"/> objects.
+            <seealso cref="T:SymbolEngine.ILookupController"/>      
+            </summary>    
+            <remarks>
+            
+            <para>Every scope has a lexical parent. The following list shows what type
+            of scopes can be lexically nested in which other scopes:
+            <list type="bullet">
+            <item>block -&gt; block, method</item>
+            <item>method -&gt; class</item>
+            <item>class -&gt; class, interface, namespace</item>
+            <item>interface -&gt; namespace </item>
+            <item>namespace -&gt; namespace</item>
+            </list> </para>
+            
+            <para> Scopes have no knowledge of either the higher level type-system nor any 
+            object derived from <see cref="T:SymbolEngine.SymEntry"/>.  </para>
+            
+            <para> Each of the different scopes above may also inherit items from super scopes
+            A class's scope inherits from its base class. An interface inherits from all of
+            its base interfaces. Some scopes, such as those for blocks and methods, only have
+            a lexical parent, but no logical parent to inherit from.</para>
+            <para>Because a scope is a 'dumb' object, it can't be aware of its super scopes.
+            So a scope uses an <see cref="T:SymbolEngine.ILookupController"/> to do smart lookups in 
+            super scopes.</para> 
+            </remarks>
+        </member>
+        <member name="M:SymbolEngine.Scope.#ctor(System.String,SymbolEngine.ILookupController,SymbolEngine.Scope)">
+            <summary>
+            Create a Scope object
+            <seealso cref="M:SymbolEngine.Scope.CreateSharedScope(SymbolEngine.ILookupController,SymbolEngine.Scope)"/>
+            </summary>
+            <param name="szDebugName">A string name to identify the scope for debugging uses.</param>
+            <param name="pController">An ILookupController to allow the scope to do smart lookups. (can be null)</param>
+            <param name="scopeLexicalParent">The lexical parent of the scope. (may be null). </param>
+        </member>
+        <member name="M:SymbolEngine.Scope.CreateSharedScope(SymbolEngine.ILookupController,SymbolEngine.Scope)">
+            <summary>
+            Create a scope that has its own controller and lexical parent, but shares
+            a set of symbols with an existing scope.
+            </summary>
+            <remark>
+            We may want multiple Scopes with different controllers but that share 
+            the same symbol set.
+            <para>Ex: A namespace can be declared in multiple blocks. All sections reside
+            in the same scope. However, each block has its own set of using
+            directives. So we want multiple scopes that share the same set of symbols, 
+            but each scope needs its own controller to handle its own set of using directives</para>        
+            </remark>
+            <param name="pController">The controller for the new scope</param>
+            <param name="scopeLexicalParent"></param>
+            <returns>A new scope with the specified lexical parent and owned by the given 
+            controller, but sharing the same set of symbols as the current scope.</returns>
+        </member>
+        <member name="M:SymbolEngine.Scope.AddSymbol(SymbolEngine.SymEntry)">
+            <summary>
+            Add a symbol to this scope. (SymEntry contains the string name)        
+            <seealso cref="M:SymbolEngine.Scope.AddAliasSymbol(System.String,SymbolEngine.SymEntry)"/>
+            </summary>
+            <remarks>
+            Adds the given Symbol to this scope, and indexes it by the symbol's name.        
+            </remarks>
+            <param name="s">The symbol to add</param>
+        </member>
+        <member name="M:SymbolEngine.Scope.AddAliasSymbol(System.String,SymbolEngine.SymEntry)">
+            <summary>
+            Add a symbol under an aliased name.
+            </summary>
+            <remarks>
+            Add an existing symbol entry, but indexed under a new name
+            <para><example>
+            [globalscope].AddAliasSymbol("int", [SymEntry for System.Int32]);
+            </example></para>
+            <seealso cref="M:SymbolEngine.Scope.AddSymbol(SymbolEngine.SymEntry)"/>
+            </remarks>
+            <param name="stAliasName">Aliased name of the symbol</param>
+            <param name="s">Symbol to add</param>                
+        </member>
+        <member name="M:SymbolEngine.Scope.LookupSymbol(System.String)">
+            <summary>
+            Do a deep lookup in this scope. This includes super scopes but not lexical parents.
+            </summary>
+            <remarks>
+            <para>If this scope does not have an ILookupController, this is equivalent to 
+            just calling <see cref="M:SymbolEngine.Scope.LookupSymbolInThisScopeOnly(System.String)"/> </para>
+            <para>else this calls <see cref="M:SymbolEngine.ILookupController.SmartLookup(System.String,SymbolEngine.Scope)"/></para>
+            </remarks>
+            <param name="strName">String name to search for</param>
+            <returns>A symbol added under this name. Null if not found.</returns>
+        </member>
+        <member name="M:SymbolEngine.Scope.LookupSymbolInThisScopeOnly(System.String)">
+            <summary>
+            Lookup a SymEntry only in this scope. Don't search super scopes or lexical parents. 
+            </summary>
+            <remarks>This is a shallow lookup that does not invoke the ILookupController</remarks>
+            <param name="strName">String name to search for.</param>
+            <returns>A symbol added under this name. Null if not found.</returns>
+        </member>
+        <member name="P:SymbolEngine.Scope.Symbol">
+            <summary><value>
+            A symbol associated with this scope.
+            </value></summary>
+        </member>
+        <member name="P:SymbolEngine.Scope.Node">
+            <summary><value>
+            An AST node associated with this scope.
+            </value></summary>
+        </member>
+        <member name="P:SymbolEngine.Scope.LexicalParent">
+            <summary><value>
+            The lexical parent of this scope.
+            </value></summary>
+            <remarks>
+            Scopes are identified on the source level and they can be lexically nested within
+            each other. The chain of lexical parents form a context. 
+            <para>Imported types have no lexical parent because they have no source.</para>
+            </remarks>
+        </member>
+        <member name="T:SymbolEngine.ISemanticResolver">
+            <summary>
+            Interface used by all functions doing symbol resolution. 
+            </summary>
+            <remarks>
+            This interface provides context for symbols, scope lookup functions,
+            type-utility functions, and safe exposure to an <see cref="T:Blue.Public.ICLRtypeProvider"/>.
+            It is not exposed to the driver.
+            <para> The Driver starts symbol resolution via the <see cref="T:Blue.Public.ISemanticChecker"/> interface.
+            Resolution is done entirely in:
+            <list type="number">
+            <item>ResolveXX() methods on the <see cref="T:AST.Node"/> class </item>
+            <item> Helper functions on the <see cref="T:SymbolEngine.SymEntry"/> classes. </item> 
+            <item> The <see cref="T:SymbolEngine.SemanticChecker"/> class, which implements the ISemanticChecker. </item>
+            </list>
+            An ISemanticResolver interface exposes an API to allow these code sections 
+            (and no other sections) to do symbol resolution.
+            </para>    
+            </remarks>
+        </member>
+        <member name="T:SymbolEngine.SemanticChecker">
+            <summary>
+            This class walks the AST to resolve all symbols.
+            </summary>
+        </member>
+        <member name="T:SymbolEngine.SymEntry">
+            <summary>
+            The base class for all symbols.
+            </summary>
+            <remarks>
+            </remarks>
+        </member>
+        <member name="T:SymbolError">
+            <summary>
+            The <c>SymbolError</c> class contains the error codes for all errors occuring durring
+            symbol resolution as well as type-safe static methods to provide the exceptions for
+            each type of error.
+            </summary>
+        </member>
+        <member name="T:FileRange">
+            <summary>
+            A <c>FileRange</c> class is a logically-immutable object to track line number information.
+            It has a filename, a starting column and row, and an ending column and row. It only
+            represents constructs within a single file.
+            </summary>
+        </member>
+    </members>
+</doc>
